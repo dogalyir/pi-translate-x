@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.1.1 — Unreleased
+## 0.1.2 — Unreleased
 
-- Patch release to verify GitHub Actions OIDC trusted publishing and npm provenance delivery; no runtime behavior changes.
+- Align GitHub Actions on npm 11.11.0 for consistent optional native dependency installation before CI and release checks. No runtime behavior changes.
+
+## 0.1.1 — Not published
+
+- Release workflow stopped at test startup before package validation or publication because npm 11.5.1 omitted a Vitest/Rolldown native optional dependency.
 
 ## 0.1.0 — Published
 
