@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "enabled": false,
+  "input": true,
+  "output": true,
+  "targetLanguage": "Japanese",
+  "provider": "<exact authenticated Pi provider id>",
+  "model": "<exact model id>",
+  "displayMode": "bilingual",
+  "timeoutMs": 60000
+}

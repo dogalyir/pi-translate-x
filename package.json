@@ -1,0 +1,66 @@
+{
+  "name": "pi-translate-x",
+  "version": "0.1.0",
+  "description": "Translate human messages through Pi with persisted, context-excluded translations",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dogalyir/pi-translate-x.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "pi-package"
+  ],
+  "type": "module",
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "config.example.json",
+    "ROADMAP.md",
+    "CONTRIBUTING.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test",
+    "validate:package": "node scripts/validate-package.mjs",
+    "validate:tarball": "node scripts/validate-tarball.mjs",
+    "test:extension": "vitest run tests/extension.test.ts",
+    "test:setup": "vitest run tests/setup.test.ts",
+    "test:retry": "vitest run tests/retry.test.ts",
+    "test:queue": "vitest run tests/extension-queue.test.ts tests/scheduler-debug.test.ts",
+    "test:runtime": "vitest run tests/configured-runtime.test.ts",
+    "test:configured": "vitest run tests/configured-runtime.test.ts",
+    "test:automatic-output": "vitest run tests/automatic-output.test.ts",
+    "test:render": "vitest run tests/render-width.test.ts",
+    "test:setup-runtime": "vitest run tests/setup-runtime.test.ts"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-agent-core": "1.4.0",
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@earendil-works/pi-tui": "1.4.0",
+    "@types/node": "22.15.30",
+    "typescript": "5.8.3",
+    "semver": "7.7.2",
+    "vitest": "5.0.5",
+    "typebox": "1.3.27"
+  }
+}

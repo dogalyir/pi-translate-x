@@ -1,0 +1,49 @@
+name: Publish npm package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ !github.event.release.prerelease && !github.event.release.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - name: Pin npm trusted publishing client
+        run: npm install --global npm@11.5.1
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Validate release tag, metadata, and package contents
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: npm run validate:package
+      - name: Pack the validated tarball
+        run: npm pack --json > pack.json
+      - name: Validate exact tarball and release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/validate-tarball.mjs pack.json "$RELEASE_TAG"
+      - name: Publish the same verified tarball with provenance
+        run: npm publish "$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync("pack.json","utf8"))[0].filename)')" --access public --provenance

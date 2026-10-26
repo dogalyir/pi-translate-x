@@ -1,0 +1,13 @@
+node_modules/
+coverage/
+tests/
+GOAL.md
+PLAN.md
+.gitignore
+.npmignore
+.github/
+.env
+.env.*
+.npmrc
+*.log
+*.tgz
