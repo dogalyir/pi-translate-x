@@ -1,6 +1,6 @@
 {
   "name": "pi-translate-x",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Translate human messages through Pi with persisted, context-excluded translations",
   "license": "MIT",
   "repository": {
