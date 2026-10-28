@@ -19,7 +19,7 @@ export function renderQuestionnaireEntry(
   }
 
   const record: DurableQuestionnaireRecord = entry.data;
-  const title = record.canonical.title ?? "Bilingual Questionnaire";
+  const title = record.canonical.title ?? "Ask User";
   const dateStr = new Date(record.createdAt).toLocaleTimeString();
   const langBadge = record.display?.language ? `[${record.display.language.toUpperCase()}]` : "";
 

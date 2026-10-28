@@ -229,8 +229,16 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return resultAction;
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire");
+    const tool = runner.getToolDefinition("ask_user");
     expect(tool).toBeDefined();
+    expect(tool?.exposure).toBe("model-only");
+    expect(tool?.label).toBe("Ask User");
+    expect(tool?.description).toContain("structured questions");
+    expect(tool?.description).toContain("choices");
+    expect(tool?.description).toContain("freeform");
+    expect(tool?.description?.toLowerCase()).not.toContain("bilingual");
+    expect(tool?.description?.toLowerCase()).not.toContain("translation");
+    expect(runner.getToolDefinition("bilingual_questionnaire")).toBeUndefined();
 
     const toolParams = {
       title: "Tech Stack",
@@ -334,7 +342,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return resultAction;
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-custom",
       {
@@ -385,7 +393,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return resultAction;
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-standalone",
       {
@@ -446,7 +454,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return resultAction;
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     await tool.execute(
       "call-mismatch",
       {
@@ -470,7 +478,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
     const runner = new ExtensionRunner([questExt], env.runtime, "/tmp", env.session, env.registry);
     bindRunner(runner, env.runtime, env.session, env.model, env.ui);
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const headlessCtx = {
       ...runner.createToolContext(),
       hasUI: false,
@@ -488,7 +496,8 @@ describe("Two-Extension ExtensionRunner Integration", () => {
     );
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("requires interactive UI mode");
+    expect(result.content[0].text).toContain("ask_user requires interactive UI mode");
+    expect(result.content[0].text).not.toContain("bilingual_questionnaire");
   });
 
   it("handles cancellation without persisting records or leaking drafts", async () => {
@@ -513,7 +522,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return resultAction;
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-cancel",
       {
@@ -546,7 +555,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
     // UI custom resolves with undefined (callback never invoked)
     env.ui.custom = vi.fn().mockResolvedValue(undefined);
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     await expect(
       tool.execute(
         "call-fail-recovery-undefined",
@@ -589,7 +598,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
     // UI custom resolves undefined
     env.ui.custom = vi.fn().mockResolvedValue(undefined);
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     await expect(
       tool.execute(
         "call-fail-presentation-undefined",
@@ -639,7 +648,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return { action: "cancel" };
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-settings-invalidated",
       {
@@ -759,7 +768,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       }
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-recovery-test",
       {
@@ -787,7 +796,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return { action: "cancel" };
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-tree-abort",
       {
@@ -833,7 +842,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return doneAction;
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-real-abort",
       {
@@ -880,7 +889,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return doneAction;
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-status-throws",
       {
@@ -962,7 +971,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       }
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-service-loss",
       {
@@ -1071,7 +1080,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       }
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-invalid-edits",
       {
@@ -1268,7 +1277,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       return { action: "cancel" };
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
 
     // Start Flow 1
     const flow1Promise = tool.execute(
@@ -1341,7 +1350,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       }
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
 
     // Start flow 1
     const flow1Promise = tool.execute(
@@ -1474,7 +1483,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       }
     });
 
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
     const result = await tool.execute(
       "call-display-retry",
       { questions: [{ id: "q1", header: "Q1", prompt: "P1", options: [{ id: "o1", label: "O1" }] }] },
@@ -1513,7 +1522,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
     const questExt = await env.questionnaireExt;
     const runner = new ExtensionRunner([questExt], env.runtime, "/tmp", env.session, env.registry);
     bindRunner(runner, env.runtime, env.session, env.model, env.ui);
-    const tool = runner.getToolDefinition("bilingual_questionnaire")!;
+    const tool = runner.getToolDefinition("ask_user")!;
 
     // Scenario A: User continues in English and only selects predefined choices (no custom prose)
     let customCallCount = 0;
@@ -1603,7 +1612,7 @@ describe("Two-Extension ExtensionRunner Integration", () => {
     const questExtStandalone = await envStandalone.questionnaireExt;
     const runnerStandalone = new ExtensionRunner([questExtStandalone], envStandalone.runtime, "/tmp", envStandalone.session, envStandalone.registry);
     bindRunner(runnerStandalone, envStandalone.runtime, envStandalone.session, envStandalone.model, envStandalone.ui);
-    const toolStandalone = runnerStandalone.getToolDefinition("bilingual_questionnaire")!;
+    const toolStandalone = runnerStandalone.getToolDefinition("ask_user")!;
 
     envStandalone.ui.custom = vi.fn().mockImplementation(async (factory: any) => {
       let doneAction: any;

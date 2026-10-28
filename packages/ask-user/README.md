@@ -4,18 +4,18 @@ Bilingual structured questionnaire extension for the Pi coding agent (`@earendil
 
 ## Overview & Architecture
 
-`pi-ask-user-x` provides the `bilingual_questionnaire` tool for interactive user questionnaires, preference elicitation, and architectural decision trees.
+`pi-ask-user-x` provides the `ask_user` tool for interactive user questionnaires, preference elicitation, and architectural decision trees.
 
-- **Non-Interception & Tool Separation**: The existing built-in `ask_user_question` tool is **not intercepted**, patched, or monkey-patched. Agents choose `bilingual_questionnaire` directly or via manual user prompt/system guidance without global state mutations.
+- **Non-Interception & Tool Separation**: The separate `ask_user_question` plugin is **not intercepted**, patched, or monkey-patched. Models invoke `ask_user` directly to ask structured questions with single or multiple choices, or open freeform input, without global state mutations.
 - **Dual Execution Modes**:
-  - **Co-operative with `pi-translate-x`**: When `pi-translate-x` (>=0.1.3) is active and enabled, question headers, prompts, descriptions, and predefined options are dynamically translated into the user's target language via the versioned translation service (`TranslationService`, protocol v1 over `pi.events`). Custom user prose and notes are reverse-translated back to English for the LLM.
+  - **Co-operative with `pi-translate-x`**: When `pi-translate-x` (>=0.1.3) is active and enabled, question headers, prompts, descriptions, and predefined options are dynamically translated into the user's target language via the versioned translation service (`TranslationService`, protocol v1 over `pi.events`). Custom user prose and notes are reverse-translated back to English for the LLM. Translation is a presentation implementation detail—the model tool name, label, and description remain clean and neutral.
   - **Standalone Mode**: When `pi-translate-x` is absent or disabled at launch, `pi-ask-user-x` operates standalone in canonical English without failure. When an active translation service is detected but incompatible, malformed, or fails rediscovery/retry, users are presented with an explicit recovery choice (Retry discovery, Continue in English, or Cancel questionnaire) rather than silently degrading. Once an enabled service is discovered, answer translation obligation is pinned: custom user prose and notes are never submitted raw to the LLM without translation or explicit user recovery choice.
 - **English-Canonical Contract & Stable IDs**: Predefined choices resolve strictly by stable, immutable string identifiers (`id`), completely independent of translated display text or duplicate localized labels. Predefined option choices are never back-translated. The model-facing tool arguments and return results remain strictly canonical English.
 - **Submit-Only Privacy & Persistence**: Only confirmed, submitted questionnaire answers and their durable bilingual display snapshot are persisted to the session transcript (as context-excluded custom entries of type `pi-ask-user-x:questionnaire`). In-progress drafts, uncommitted answers, and cancelled questionnaire sessions are discarded from memory and never written to transcript storage. Persisted records are static; changing translator settings later does not re-translate or mutate session history. Durable transcript records are rendered visually for the human user but excluded from LLM context injection.
 
 ## Question Types and Configuration
 
-The `bilingual_questionnaire` tool supports 1 to 8 structured questions per invocation:
+The `ask_user` tool supports 1 to 8 structured questions per invocation:
 
 | Question Type | Behavior & Fields |
 |---|---|
@@ -63,9 +63,12 @@ When using alongside `pi-translate-x` for bilingual translation support, ensure 
 pi install npm:pi-translate-x
 ```
 
-### Source Checkout and Release Status
+### Source Checkout, Migration, and Release Status
 
-- **Published Tarball vs Source**: Version `0.1.0` of `pi-ask-user-x` is verified public latest on npm (integrity `sha512-MYTZ9F1Ll7DKmyeUtq5iAzBF/r6vwomizfeR2WUjr25KK+si36iHINRgMon5WzUcNkxzjnc/mGeWtnG/d1Mdiw==`, owner `carmelocampos`). Because npm enforces package immutability, version 0.1.0 cannot and will not be republished.
+- **Tool Name Migration**:
+  - In `pi-ask-user-x@0.1.0` (published on npm): The tool was named `bilingual_questionnaire`.
+  - In `pi-ask-user-x@0.1.1` (prepared in checkout): The tool is renamed to `ask_user` with label `Ask User` and a neutral model description (`structured questions / choices / freeform`).
+- **Published Tarball vs Source**: Version `0.1.0` of `pi-ask-user-x` is verified public latest on npm (integrity `sha512-MYTZ9F1Ll7DKmyeUtq5iAzBF/r6vwomizfeR2WUjr25KK+si36iHINRgMon5WzUcNkxzjnc/mGeWtnG/d1Mdiw==`, owner `carmelocampos`). Because npm enforces package immutability, version 0.1.0 cannot and will not be republished. Version `0.1.1` is prepared in this repository workspace.
 - **Future Automated Releases**: Subsequent releases will be automated via GitHub Actions workflow `.github/workflows/publish-ask-user.yml` triggered exclusively by published GitHub Releases (`GHrelease.published`) with tag `pi-ask-user-x-v<packageversion>`.
 - **npm Trusted Publisher Configuration**:
   - GitHub repository: `dogalyir/pi-translate-x`
@@ -82,7 +85,7 @@ pi --no-extensions --extension ./src/index.ts --extension ./packages/ask-user/sr
 
 ## Runnable Schema Example
 
-Below is a complete, runnable invocation of `bilingual_questionnaire` demonstrating `single`, `multi`, and `text` question types, markdown previews, supplemental custom text, notes, and selection bounds:
+Below is a complete, runnable invocation of `ask_user` demonstrating `single`, `multi`, and `text` question types, markdown previews, supplemental custom text, notes, and selection bounds:
 
 ```json
 {
@@ -151,6 +154,14 @@ Below is a complete, runnable invocation of `bilingual_questionnaire` demonstrat
 ## Testing & Verification Limits
 
 Automated test suites pass deterministically using headless Vitest assertions, mock terminal renderers, and simulated event busses. **No manual assistive technology (AT), hardware cursor, screen-reader, or live terminal/provider verification is claimed.** Manual terminal inspection remains required for physical terminal emulator quirks.
+
+## Documentation & Monorepo Links
+
+For additional architectural details and guides, see the repository documentation:
+- [Questionnaire Guide](https://github.com/dogalyir/pi-translate-x/blob/main/docs/questionnaire.md)
+- [Translation Pipeline Guide](https://github.com/dogalyir/pi-translate-x/blob/main/docs/translation.md)
+- [Release Operations & Verification](https://github.com/dogalyir/pi-translate-x/blob/main/docs/releases.md)
+- [Monorepo Documentation Index](https://github.com/dogalyir/pi-translate-x/blob/main/docs/index.md)
 
 ## License
 

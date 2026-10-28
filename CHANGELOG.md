@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.1.3 — Unreleased
+## [Unreleased]
+
+- Companion package `pi-ask-user-x` prepared for release `0.1.1` (workspace version `0.1.1`):
+  - Renamed model tool `bilingual_questionnaire` -> `ask_user`.
+  - Updated tool registration label to `Ask User` with a neutral model description (`Ask the user structured questions with single or multiple choices, or open freeform input, to collect preferences, requirements, and decisions.`).
+  - Updated headless error message and session card renderer default title to neutral `Ask User`.
+  - Migration note: Historical release `pi-ask-user-x@0.1.0` was published on npm registering the tool as `bilingual_questionnaire`. Version `0.1.1` adopts the user-approved `ask_user` tool name. Translation remains an internal presentation capability over `TranslationService` (protocol v1 on `pi.events`).
+  - No legacy tool alias is registered for `bilingual_questionnaire` to prevent duplicate model tools.
+  - Root package `pi-translate-x` remains published `0.1.3`; protocol channels, record types, and service version are unchanged.
+
+## 0.1.3 — Published
 
 - Show a transient namespaced TUI status while automatic or retry response translations are pending.
 - Added versioned translation service (`TranslationService`, protocol v1 on `pi.events`) providing translation capabilities to companion workspace packages without duplicate model calls. Minimum translator `pi-translate-x@0.1.3` required for companion questionnaire translation service.

@@ -96,12 +96,12 @@ export default function register(pi: ExtensionAPI): void {
     });
   }
 
-  // 2. Register tool bilingual_questionnaire
+  // 2. Register tool ask_user
   pi.registerTool({
-    name: "bilingual_questionnaire",
-    label: "Bilingual Questionnaire",
+    name: "ask_user",
+    label: "Ask User",
     description:
-      "Interactive bilingual questionnaire to collect user preferences, architectural decisions, and configurations.",
+      "Ask the user structured questions with single or multiple choices, or open freeform input, to collect preferences, requirements, and decisions.",
     exposure: "model-only",
     parameters: BilingualQuestionnaireParamsSchema,
     execute: async (toolCallId, params: BilingualQuestionnaireParams, signal, _onUpdate, ctx) => {
@@ -927,7 +927,7 @@ function makeUnsupportedResult(params: BilingualQuestionnaireParams, reason: str
     content: [
       {
         type: "text" as const,
-        text: "Error: bilingual_questionnaire requires interactive UI mode (TUI or RPC). Headless execution is not supported.",
+        text: "Error: ask_user requires interactive UI mode (TUI or RPC). Headless execution is not supported.",
       },
     ],
     isError: true,
