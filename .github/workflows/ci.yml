@@ -33,3 +33,9 @@ jobs:
       - run: npm pack --json > pack.json
       - name: Verify exact package tarball
         run: node scripts/validate-tarball.mjs pack.json "v$(node -p 'require("./package.json").version')"
+      - name: Validate ask-user package metadata
+        run: node scripts/validate-ask-user-package.mjs
+      - name: Pack ask-user workspace
+        run: npm pack --workspace packages/ask-user --json > pack-ask-user.json
+      - name: Verify exact ask-user package tarball
+        run: node scripts/validate-ask-user-tarball.mjs pack-ask-user.json "pi-ask-user-x-v$(node -p 'require("./packages/ask-user/package.json").version')"

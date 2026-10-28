@@ -11,5 +11,5 @@
     "declaration": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "packages/ask-user/src/**/*.ts", "packages/ask-user/tests/**/*.ts"]
 }

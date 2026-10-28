@@ -1,0 +1,48 @@
+name: Publish pi-ask-user-x package
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish-ask-user-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ !github.event.release.prerelease && !github.event.release.draft && startsWith(github.event.release.tag_name, 'pi-ask-user-x-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - name: Pin npm trusted publishing client
+        run: npm install --global npm@11.11.0
+      - run: npm ci
+      - run: npm run check
+      - name: Validate ask-user package metadata and tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/validate-ask-user-package.mjs
+      - name: Pack ask-user workspace
+        run: npm pack --workspace packages/ask-user --json > pack-ask-user.json
+      - name: Validate exact ask-user tarball and release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/validate-ask-user-tarball.mjs pack-ask-user.json "$RELEASE_TAG"
+      - name: Publish verified ask-user tarball with provenance
+        run: npm publish "$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync("pack-ask-user.json","utf8"))[0].filename)')" --access public --provenance

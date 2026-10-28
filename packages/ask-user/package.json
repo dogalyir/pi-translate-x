@@ -1,0 +1,53 @@
+{
+  "name": "pi-ask-user-x",
+  "version": "0.1.0",
+  "description": "Bilingual structured questionnaire extension for Pi coding agent",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dogalyir/pi-translate-x.git",
+    "directory": "packages/ask-user"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "type": "module",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test",
+    "pack:dry": "npm pack --dry-run"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-agent-core": "1.4.0",
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@earendil-works/pi-tui": "1.4.0",
+    "@types/node": "22.15.30",
+    "typescript": "5.8.3",
+    "vitest": "5.0.5",
+    "typebox": "1.3.27"
+  }
+}

@@ -24,6 +24,7 @@ describe("automatic output commit lane in installed ExtensionRunner", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     const card = session.getBranch().find((entry: any) => entry.type === "custom" && entry.customType === "pi-translate-x:output");
     expect(card).toBeDefined(); expect((card as any).data.messageEntryId).toBe(assistant.id); expect((card as any).data.translated).toBe("automatic success");
+    expect(ui.setStatus.mock.calls).toEqual([["pi-translate-x:output", "Translating response…"], ["pi-translate-x:output", undefined]]);
   });
 
   it("persists two cached/success outputs in source order despite completion order", async () => {
