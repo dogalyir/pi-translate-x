@@ -2,7 +2,17 @@
 
 ## [Unreleased]
 
-- Companion package `pi-ask-user-x` prepared for release `0.1.1` (workspace version `0.1.1`):
+## pi-ask-user-x 0.1.2
+
+- Fixed keyboard handling in terminals that use the kitty keyboard protocol or SS3 application-cursor mode (Kitty, Ghostty, WezTerm, tmux, Herdr, SSH): `Shift+Tab`, `←`/`→` and `Esc` (including on the submit and cancel confirmations) are now matched protocol-aware instead of by raw escape sequences.
+- Added mouse support in Pi fullscreen mode: click tab chips to switch questions, click options to select/toggle (double-click a single-choice option to select and advance), click custom/note rows to edit and the submit row to submit. Wheel and drag keep Pi's default behavior.
+- UI chrome (labels, hints, dialogs) is now translated together with questionnaire content; removed remaining hard-coded English and reworded the mark-empty option to "Leave this question blank".
+- Footer hints now advertise arrow navigation, and the review tab has its own accurate footer.
+- Added regression tests for kitty/SS3 key encodings, mouse hit-testing, hints and localized chrome.
+
+## pi-ask-user-x 0.1.1 — Published
+
+- Released companion package `pi-ask-user-x` `0.1.1`:
   - Renamed model tool `bilingual_questionnaire` -> `ask_user`.
   - Updated tool registration label to `Ask User` with a neutral model description (`Ask the user structured questions with single or multiple choices, or open freeform input, to collect preferences, requirements, and decisions.`).
   - Updated headless error message and session card renderer default title to neutral `Ask User`.

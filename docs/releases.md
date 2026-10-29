@@ -9,7 +9,7 @@ This document details the release processes, verified published packages, GitHub
 | Package | Workspace Path | Latest npm Version | Release Status | Distribution Mechanism |
 |---|---|---|---|---|
 | `pi-translate-x` | `.` (monorepo root) | `0.1.3` | **Published** | Automated via `.github/workflows/publish.yml` (OIDC Provenance) |
-| `pi-ask-user-x` | `packages/ask-user` | `0.1.0` (0.1.1 prepared) | **Published 0.1.0** (0.1.1 prepared) | Manual initial bootstrap; automated workflow prepared |
+| `pi-ask-user-x` | `packages/ask-user` | `0.1.2` | **Published** | Automated via `.github/workflows/publish-ask-user.yml` (OIDC Provenance); `0.1.0` was a manual bootstrap |
 
 ### Verified Release Evidence
 
@@ -23,7 +23,11 @@ This document details the release processes, verified published packages, GitHub
   - Public npm release: `0.1.0` (manual initial bootstrap, owner `carmelocampos`, tool name `bilingual_questionnaire`)
   - Prepared version `0.1.1`: Renames model tool to `ask_user` with neutral label and description.
   - Note: Package immutability prevents republishing `0.1.0`. Future releases will use automated workflow `.github/workflows/publish-ask-user.yml`.
-  - **Important**: npm trusted publisher trust for `pi-ask-user-x` is **NOT** confirmed in the npm owner UI. Automated publishing will activate only after owner configuration.
+  - `0.1.1` was published by `publish-ask-user.yml` (run `40635156053`) with npm provenance, confirming trusted publishing is configured.
+
+- **`pi-ask-user-x@0.1.2`**:
+  - GitHub Release: [`pi-ask-user-x-v0.1.2`](https://github.com/dogalyir/pi-translate-x/releases/tag/pi-ask-user-x-v0.1.2)
+  - Protocol-aware keyboard handling, fullscreen mouse support, translated UI chrome, accurate footer hints.
 
 ---
 
@@ -62,7 +66,7 @@ Both release workflows enforce least-privilege security settings, Node 24, npm 1
   - Repository: `dogalyir/pi-translate-x`
   - Workflow filename: `publish-ask-user.yml`
   - Environment name: `npm`
-  - *Status*: Pending confirmation from package owner.
+  - *Status*: Confirmed (used to publish `0.1.1`).
 - **Execution Steps**:
   1. Check out release tag commit.
   2. Pin npm to `11.11.0`.
@@ -91,7 +95,7 @@ git push origin v0.1.4
 gh release create v0.1.4 --title "v0.1.4" --notes "Release v0.1.4"
 ```
 
-### Cutting a Companion `pi-ask-user-x` Release (Future)
+### Cutting a Companion `pi-ask-user-x` Release
 
 ```sh
 # 1. Ensure local tree and ask-user checks pass
