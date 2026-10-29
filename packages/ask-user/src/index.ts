@@ -302,7 +302,8 @@ async function executeQuestionnaireFlow(
   let translatedMap: Map<string, string> | undefined = undefined;
 
   if (discovery?.status === "available" && client) {
-    const fields = extractTranslatableFields(params);
+    // Include UI chrome (labels, hints, dialogs) so the whole questionnaire is localized, not just the content.
+    const fields = extractTranslatableFields(params, true);
     let fetchOk = false;
     let isRetry = false;
     let fetchError: string | undefined = undefined;

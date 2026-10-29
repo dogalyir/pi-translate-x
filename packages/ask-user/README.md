@@ -35,7 +35,10 @@ The TUI component (`QuestionnaireTUIComponent`) provides an accessible, fully re
 - **Screen Layouts**: Responsive side-by-side (>= 80 columns), stacked preview (60–80 columns), and compact (< 60 columns) modes.
 - **Height-Bounded Viewport**: Computes `termRows` before checking cached renders, caching terminal height alongside width. Terminal height resizes (e.g. 24 -> 8 -> 4 rows) at the same width reflow immediately without requiring manual `invalidate()`.
 - **Markdown Previews**: Syntax-highlighted code blocks in previews (via public `Markdown` and `getMarkdownTheme()`). Focusable with `p`, scrollable with Up/Down/PageUp/PageDown without clipping.
-- **Review Tab**: Accessible via `Tab`/`Shift-Tab`, listing all question statuses, answers, validation errors, global notes, and submit trigger. Pressing `Enter` on any row jumps directly to edit that question.
+- **Keyboard Navigation**: `←`/`→` or `Tab`/`Shift+Tab` switch questions, `↑`/`↓` move, `Space` selects, `Enter` confirms, `Esc` cancels. Keys are matched protocol-aware (legacy, SS3 application-cursor and kitty keyboard protocol encodings), so they work in Kitty, Ghostty, WezTerm, tmux, Herdr and over SSH.
+- **Mouse (pi fullscreen mode)**: Left-click a tab chip to switch question; left-click an option to select/toggle it (double-click a single-choice option to select and advance); click custom/note rows to edit and the submit row to submit. Wheel and drag keep pi's default scroll/selection behavior. In regular mode the terminal owns the mouse.
+- **Localized Chrome**: When `pi-translate-x` is active, UI labels, hints and dialogs are translated together with the questionnaire content.
+- **Review Tab**: Accessible via `Tab`/`Shift+Tab` or `←`/`→`, listing all question statuses, answers, validation errors, global notes, and submit trigger. Pressing `Enter` on any row jumps directly to edit that question.
 - **Confirmations**:
   - Full submit confirmation (`confirm_submit_full`).
   - Conscious partial submit confirmation (`confirm_submit_partial`), explicitly listing headers and IDs of unanswered questions.

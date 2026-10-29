@@ -319,7 +319,7 @@ describe("Questionnaire TUI Component Layout & Keybindings", () => {
 
     // Verify footer shortcuts are present on the last line
     const lastLine = lines[lines.length - 1]!;
-    expect(lastLine).toContain("Navigate");
+    expect(lastLine).toContain("[↑/↓] Move");
 
     // Enter note editing on narrow terminal
     comp.handleInput("n");

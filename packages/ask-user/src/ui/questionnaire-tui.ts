@@ -7,10 +7,14 @@ import {
   visibleWidth,
   sliceByColumn,
   wrapTextWithAnsi,
+  matchesKey,
+  type KeyId,
   type Component,
   type Focusable,
   type KeybindingsManager,
   type TUI,
+  type TuiMouseEvent,
+  type TuiMouseEventResult,
 } from "@earendil-works/pi-tui";
 import { getMarkdownTheme, type Theme } from "@earendil-works/pi-coding-agent";
 import { QuestionnaireStateMachine } from "../domain/state.js";
@@ -61,6 +65,21 @@ export type ReviewRowDescriptor =
   | { readonly kind: "global_note" }
   | { readonly kind: "submit" };
 
+/** Hit-test geometry captured by the last full render (component-local, zero-based). */
+interface MouseLayout {
+  readonly tabLineIndex: number;
+  /** Inclusive column spans of each tab chip; target === questions.length is the review tab. */
+  readonly tabSpans: ReadonlyArray<{ readonly start: number; readonly end: number; readonly target: number }>;
+  readonly bodyStart: number;
+  readonly bodyCount: number;
+  readonly bodyScrollOffset: number;
+  readonly rowLineRanges: ReadonlyArray<{ readonly start: number; readonly end: number }>;
+  /** Columns at or beyond this are the side-by-side preview pane (not clickable). */
+  readonly clickableMaxX?: number | undefined;
+}
+
+type MouseHit = { readonly kind: "tab"; readonly target: number } | { readonly kind: "row"; readonly rowIndex: number };
+
 export class QuestionnaireTUIComponent implements Component, Focusable {
   public focused = true;
 
@@ -92,6 +111,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
   private cachedHeight?: number | undefined;
   private cachedLines?: string[] | undefined;
   private dialogScrollOffset = 0;
+  private mouseLayout?: MouseLayout | undefined;
 
   constructor(options: QuestionnaireTUIOptions) {
     this.state = options.state;
@@ -204,6 +224,8 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
 
     this.cachedWidth = width;
     this.cachedHeight = termRows;
+    // Dialog screens are keyboard-only; only the main layout below records click targets.
+    this.mouseLayout = undefined;
 
     // 1. Display Error Recovery Screen
     if (this.displayError) {
@@ -228,7 +250,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         this.theme.fg("error", " Answer translation failed:"),
         [
           this.theme.fg("dim", `  ${this.answerError}`),
-          this.theme.fg("dim", "  Your draft answers are preserved in memory."),
+          this.theme.fg("dim", `  ${this.chrome.draftsPreserved}`),
         ],
         [
           { key: "[r]", label: this.chrome.retryAnswers, short: "Retry" },
@@ -274,7 +296,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         termRows,
         this.theme.fg("warning", ` ${this.chrome.confirmPartialTitle}`),
         [
-          this.theme.fg("dim", `  Unanswered questions: ${headers.join(", ")}`),
+          this.theme.fg("dim", `  ${this.chrome.unansweredQuestions}: ${headers.join(", ")}`),
           this.theme.fg("dim", `  ${this.chrome.submitAnyway}`),
         ],
         [
@@ -292,7 +314,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     const totalQ = this.state.questions.length;
     const progressText = this.state.isReviewTab
       ? `[${this.chrome.reviewAndSubmit}]`
-      : `[Q ${curIdx + 1} of ${totalQ}]`;
+      : `[${this.chrome.questionLabel} ${curIdx + 1}/${totalQ}]`;
 
     const headerLeft = ` ${this.theme.style(titleText, { bold: true, fg: "accent" })} ${this.theme.fg("dim", langBadge)}`;
     const headerRight = `${this.theme.fg("dim", progressText)} `;
@@ -333,8 +355,18 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     const activeTabIdx = this.state.isReviewTab ? this.display.questions.length : this.state.currentQuestionIndex;
     const fullTabStr = " " + allChips.join(" ");
     let tabLine = "";
+    const tabSpans: Array<{ start: number; end: number; target: number }> = [];
+    const recordTabSpans = (firstIdx: number, lastIdx: number, startX: number) => {
+      let x = startX;
+      for (let i = firstIdx; i <= lastIdx; i++) {
+        const w = visibleWidth(allChips[i]!);
+        tabSpans.push({ start: x, end: x + w - 1, target: i });
+        x += w + 1;
+      }
+    };
     if (visibleWidth(fullTabStr) <= width) {
       tabLine = fullTabStr;
+      recordTabSpans(0, allChips.length - 1, 1);
     } else {
       const activeChip = allChips[activeTabIdx]!;
       let startIdx = activeTabIdx;
@@ -374,7 +406,9 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         (startIdx > 0 ? this.theme.fg("dim", "‹... ") : "") +
         visibleSlice.join(" ") +
         (endIdx < allChips.length - 1 ? this.theme.fg("dim", " ...›") : "");
+      recordTabSpans(startIdx, endIdx, 1 + (startIdx > 0 ? visibleWidth("‹... ") : 0));
     }
+    const tabLineIndex = headerLines.length;
     headerLines.push(tabLine);
     headerLines.push(this.theme.fg("dim", "─".repeat(width)));
 
@@ -386,7 +420,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         if (this.previewFocusMode) {
           footerLines.push(this.theme.fg("accent", ` ${this.chrome.previewScrollHint}`));
         } else if (this.inputMode === "none") {
-          footerLines.push(this.theme.fg("dim", ` ${this.chrome.footerNav}`));
+          footerLines.push(this.theme.fg("dim", ` ${this.state.isReviewTab ? this.chrome.footerReview : this.chrome.footerNav}`));
         } else {
           footerLines.push(this.theme.fg("dim", ` ${this.chrome.footerEdit}`));
         }
@@ -397,7 +431,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       if (this.previewFocusMode) {
         footerLines.push(this.theme.fg("accent", ` ${this.chrome.previewScrollHint}`));
       } else if (this.inputMode === "none") {
-        footerLines.push(this.theme.fg("dim", ` ${this.chrome.footerNav}`));
+        footerLines.push(this.theme.fg("dim", ` ${this.state.isReviewTab ? this.chrome.footerReview : this.chrome.footerNav}`));
       } else {
         footerLines.push(this.theme.fg("dim", ` ${this.chrome.footerEdit}`));
       }
@@ -482,8 +516,115 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       }
     }
 
+    this.mouseLayout = {
+      tabLineIndex,
+      tabSpans,
+      bodyStart: headerLines.length,
+      bodyCount: Math.max(0, Math.min(visibleBody.length, assembled.length - headerLines.length)),
+      bodyScrollOffset: this.bodyScrollOffset,
+      rowLineRanges,
+      clickableMaxX: !this.state.isReviewTab && width >= 80 ? Math.floor(width * 0.55) : undefined,
+    };
+
     this.cachedLines = assembled.map((l) => truncateToWidth(l, width));
     return this.cachedLines;
+  }
+
+  /**
+   * Mouse support (pi fullscreen mode only; in regular mode the terminal owns the mouse).
+   * Left click on a tab chip switches question; left click on a row acts on it.
+   * Wheel and drags are left unhandled so pi keeps its default scroll/selection behavior.
+   */
+  public handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
+    if (event.button !== "left") return undefined;
+    if (event.type !== "press" && event.type !== "click") return undefined;
+    const hit = this.hitTest(event.x, event.y);
+    if (!hit) return undefined;
+    // Claim the press so pi routes the follow-up click to us instead of starting a text selection.
+    if (event.type === "press") return { handled: true, render: false };
+    this.activateMouseHit(hit, event.clickCount ?? 1);
+    return { handled: true, render: true };
+  }
+
+  private hitTest(x: number, y: number): MouseHit | undefined {
+    const layout = this.mouseLayout;
+    if (!layout || this.displayError || this.answerError || this.inputMode !== "none") return undefined;
+
+    if (y === layout.tabLineIndex) {
+      const span = layout.tabSpans.find((s) => x >= s.start && x <= s.end);
+      return span ? { kind: "tab", target: span.target } : undefined;
+    }
+
+    if (y >= layout.bodyStart && y < layout.bodyStart + layout.bodyCount) {
+      if (layout.clickableMaxX !== undefined && x >= layout.clickableMaxX) return undefined;
+      const line = layout.bodyScrollOffset + (y - layout.bodyStart);
+      const rowIndex = layout.rowLineRanges.findIndex((r) => line >= r.start && line <= r.end);
+      return rowIndex >= 0 ? { kind: "row", rowIndex } : undefined;
+    }
+
+    return undefined;
+  }
+
+  private activateMouseHit(hit: MouseHit, clickCount: number): void {
+    this.alertMessage = undefined;
+    this.previewFocusMode = false;
+
+    if (hit.kind === "tab") {
+      if (hit.target >= this.display.questions.length) {
+        this.state.goToReview();
+      } else {
+        this.state.goToQuestion(hit.target);
+      }
+      this.focusedItemIndex = 0;
+      this.focusedItemChanged = true;
+      this.bodyScrollOffset = 0;
+      this.invalidate();
+      return;
+    }
+
+    this.focusedItemIndex = hit.rowIndex;
+    this.focusedItemChanged = true;
+
+    if (this.state.isReviewTab) {
+      const row = this.getReviewRows()[hit.rowIndex];
+      if (row?.kind === "question") {
+        this.state.goToQuestion(row.questionIndex);
+        this.focusedItemIndex = 0;
+        this.bodyScrollOffset = 0;
+      } else if (row?.kind === "global_note") {
+        this.startGlobalNoteInput();
+        return;
+      } else if (row?.kind === "submit") {
+        this.triggerSubmit();
+        return;
+      }
+      this.invalidate();
+      return;
+    }
+
+    const q = this.display.questions[this.state.currentQuestionIndex]!;
+    const row = this.getQuestionRows(q)[hit.rowIndex];
+    if (row?.kind === "option") {
+      const isSingle = (q.type ?? "single") === "single";
+      if (isSingle && clickCount >= 2) {
+        // Double-click on a single-choice option behaves like Enter: select and advance.
+        this.state.selectOption(q.id, row.option.id);
+        this.state.next();
+        this.focusedItemIndex = 0;
+        this.bodyScrollOffset = 0;
+      } else if (!isSingle || !this.state.getAnswer(q.id).selectedOptionIds.includes(row.option.id)) {
+        this.state.selectOption(q.id, row.option.id);
+      }
+    } else if (row?.kind === "custom") {
+      this.startCustomInput(q);
+      return;
+    } else if (row?.kind === "empty") {
+      this.state.confirmEmptySelection(q.id);
+    } else if (row?.kind === "note") {
+      this.startNoteInput(q);
+      return;
+    }
+    this.invalidate();
   }
 
   private renderCompactDialog(
@@ -706,7 +847,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     if (isSideBySide) {
       const rightLines: string[] = [];
       const previewHeaderTitle = this.previewFocusMode
-        ? `─ ${this.chrome.previewHeader} [focused] ─`
+        ? `─ ${this.chrome.previewHeader} [${this.chrome.previewFocusedTag}] ─`
         : `─ ${this.chrome.previewHeader} ─`;
       rightLines.push(this.theme.fg("dim", previewHeaderTitle));
       if (previewContent.trim()) {
@@ -734,7 +875,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     } else if (isStacked) {
       bodyLines.push(...leftLines);
       const previewTitle = this.previewFocusMode
-        ? `─ ${this.chrome.previewHeader} [focused] ─`
+        ? `─ ${this.chrome.previewHeader} [${this.chrome.previewFocusedTag}] ─`
         : `─ ${this.chrome.previewHeader} ─`;
       bodyLines.push(this.theme.fg("dim", previewTitle));
       if (previewContent.trim()) {
@@ -760,8 +901,8 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       if (previewContent.trim()) {
         if (this.previewExpanded || this.previewFocusMode) {
           const previewTitle = this.previewFocusMode
-            ? `─ ${this.chrome.previewHeader} [focused] ─`
-            : `─ ${this.chrome.previewHeader} [p: collapse] ─`;
+            ? `─ ${this.chrome.previewHeader} [${this.chrome.previewFocusedTag}] ─`
+            : `─ ${this.chrome.previewHeader} (${this.chrome.previewCollapseHint}) ─`;
           bodyLines.push(this.theme.fg("dim", previewTitle));
           try {
             const mdTheme = getMarkdownTheme();
@@ -821,12 +962,12 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
           if (found) chosenLabels.push(found.label);
         }
         if (ans.customText) {
-          chosenLabels.push(`Custom: "${ans.customText}"`);
+          chosenLabels.push(`${this.chrome.customLabel}: "${ans.customText}"`);
         }
         if (ans.emptySelectionConfirmed) {
           chosenLabels.push(`(${this.chrome.markEmpty})`);
         }
-        const answerSummary = chosenLabels.length > 0 ? chosenLabels.join(", ") : "(Empty)";
+        const answerSummary = chosenLabels.length > 0 ? chosenLabels.join(", ") : this.chrome.emptyAnswer;
 
         const rowText = `${cursor}${row.questionIndex + 1}. ${this.theme.style(q.header, { bold: true })}: ${answerSummary}  ${statusBadge}`;
         const wrappedRow = wrapTextWithAnsi(rowText, Math.max(10, width - 1));
@@ -893,25 +1034,25 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         this.finish({ action: "retry_display" });
         return;
       }
-      if (data === "e" || data === "E" || this.matchesBinding(data, "tui.select.confirm", ["\r", "\n"]) || data === " ") {
+      if (data === "e" || data === "E" || this.matchesBinding(data, "tui.select.confirm", ["enter"]) || matchesKey(data, "space")) {
         this.displayError = undefined;
         this.dialogScrollOffset = 0;
         this.finish({ action: "continue_english" });
         return;
       }
-      if (data === "c" || data === "C" || this.matchesBinding(data, "tui.select.cancel", ["\x1b"])) {
+      if (data === "c" || data === "C" || this.matchesBinding(data, "tui.select.cancel", ["escape"])) {
         this.dialogScrollOffset = 0;
         this.finish({ action: "cancel" });
         return;
       }
-      if (this.matchesBinding(data, "tui.select.up", ["\x1b[A", "k"])) {
+      if (this.matchesBinding(data, "tui.select.up", ["up", "k"])) {
         if (this.dialogScrollOffset > 0) {
           this.dialogScrollOffset--;
           this.invalidate();
         }
         return;
       }
-      if (this.matchesBinding(data, "tui.select.down", ["\x1b[B", "j"])) {
+      if (this.matchesBinding(data, "tui.select.down", ["down", "j"])) {
         this.dialogScrollOffset++;
         this.invalidate();
         return;
@@ -926,25 +1067,25 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         this.finish({ action: "retry_answer" });
         return;
       }
-      if (data === "e" || data === "E" || this.matchesBinding(data, "tui.select.confirm", ["\r", "\n"]) || data === " ") {
+      if (data === "e" || data === "E" || this.matchesBinding(data, "tui.select.confirm", ["enter"]) || matchesKey(data, "space")) {
         this.answerError = undefined;
         this.dialogScrollOffset = 0;
         this.invalidate();
         return;
       }
-      if (data === "c" || data === "C" || this.matchesBinding(data, "tui.select.cancel", ["\x1b"])) {
+      if (data === "c" || data === "C" || this.matchesBinding(data, "tui.select.cancel", ["escape"])) {
         this.dialogScrollOffset = 0;
         this.finish({ action: "cancel" });
         return;
       }
-      if (this.matchesBinding(data, "tui.select.up", ["\x1b[A", "k"])) {
+      if (this.matchesBinding(data, "tui.select.up", ["up", "k"])) {
         if (this.dialogScrollOffset > 0) {
           this.dialogScrollOffset--;
           this.invalidate();
         }
         return;
       }
-      if (this.matchesBinding(data, "tui.select.down", ["\x1b[B", "j"])) {
+      if (this.matchesBinding(data, "tui.select.down", ["down", "j"])) {
         this.dialogScrollOffset++;
         this.invalidate();
         return;
@@ -954,25 +1095,25 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
 
     // 2. Cancellation Confirmation Mode
     if (this.inputMode === "confirm_cancel") {
-      if (data === "y" || data === "Y" || data === "\r" || data === "\n") {
+      if (data === "y" || data === "Y" || this.isConfirmKey(data)) {
         this.dialogScrollOffset = 0;
         this.finish({ action: "cancel" });
         return;
       }
-      if (data === "n" || data === "N" || data === "\x1b") {
+      if (data === "n" || data === "N" || this.isCancelKey(data)) {
         this.dialogScrollOffset = 0;
         this.inputMode = "none";
         this.invalidate();
         return;
       }
-      if (this.matchesBinding(data, "tui.select.up", ["\x1b[A", "k"])) {
+      if (this.matchesBinding(data, "tui.select.up", ["up", "k"])) {
         if (this.dialogScrollOffset > 0) {
           this.dialogScrollOffset--;
           this.invalidate();
         }
         return;
       }
-      if (this.matchesBinding(data, "tui.select.down", ["\x1b[B", "j"])) {
+      if (this.matchesBinding(data, "tui.select.down", ["down", "j"])) {
         this.dialogScrollOffset++;
         this.invalidate();
         return;
@@ -985,8 +1126,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       if (
         data === "y" ||
         data === "Y" ||
-        data === "\r" ||
-        data === "\n" ||
+        this.isConfirmKey(data) ||
         data === "s" ||
         data === "S"
       ) {
@@ -994,20 +1134,20 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         this.finish({ action: "submit" });
         return;
       }
-      if (data === "n" || data === "N" || data === "\x1b") {
+      if (data === "n" || data === "N" || this.isCancelKey(data)) {
         this.dialogScrollOffset = 0;
         this.inputMode = "none";
         this.invalidate();
         return;
       }
-      if (this.matchesBinding(data, "tui.select.up", ["\x1b[A", "k"])) {
+      if (this.matchesBinding(data, "tui.select.up", ["up", "k"])) {
         if (this.dialogScrollOffset > 0) {
           this.dialogScrollOffset--;
           this.invalidate();
         }
         return;
       }
-      if (this.matchesBinding(data, "tui.select.down", ["\x1b[B", "j"])) {
+      if (this.matchesBinding(data, "tui.select.down", ["down", "j"])) {
         this.dialogScrollOffset++;
         this.invalidate();
         return;
@@ -1024,13 +1164,13 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
 
     // 5. Preview Focus Mode Navigation
     if (this.previewFocusMode) {
-      if (data === "p" || data === "P" || this.matchesBinding(data, "tui.select.cancel", ["\x1b"])) {
+      if (data === "p" || data === "P" || this.matchesBinding(data, "tui.select.cancel", ["escape"])) {
         this.previewFocusMode = false;
         this.invalidate();
         return;
       }
 
-      if (this.matchesBinding(data, "tui.select.up", ["\x1b[A", "k"])) {
+      if (this.matchesBinding(data, "tui.select.up", ["up", "k"])) {
         if (this.bodyScrollOffset === 0) {
           this.previewFocusMode = false;
           this.focusedItemChanged = true;
@@ -1041,25 +1181,25 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         return;
       }
 
-      if (this.matchesBinding(data, "tui.select.down", ["\x1b[B", "j"])) {
+      if (this.matchesBinding(data, "tui.select.down", ["down", "j"])) {
         this.bodyScrollOffset += 1;
         this.invalidate();
         return;
       }
 
-      if (this.matchesBinding(data, "tui.select.pageUp", ["\x1b[5~"])) {
+      if (this.matchesBinding(data, "tui.select.pageUp", ["pageUp"])) {
         this.bodyScrollOffset = Math.max(0, this.bodyScrollOffset - Math.max(1, this.lastMaxBodyHeight - 1));
         this.invalidate();
         return;
       }
 
-      if (this.matchesBinding(data, "tui.select.pageDown", ["\x1b[6~"])) {
+      if (this.matchesBinding(data, "tui.select.pageDown", ["pageDown"])) {
         this.bodyScrollOffset += Math.max(1, this.lastMaxBodyHeight - 1);
         this.invalidate();
         return;
       }
 
-      if (data === "\t" || data === "\x1b[C" || data === "l") {
+      if (this.isNextKey(data)) {
         this.previewFocusMode = false;
         this.state.next();
         this.focusedItemIndex = 0;
@@ -1070,7 +1210,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
         return;
       }
 
-      if (data === "\x1b[Z" || data === "\x1b[D" || data === "h") {
+      if (this.isPrevKey(data)) {
         this.previewFocusMode = false;
         this.state.prev();
         this.focusedItemIndex = 0;
@@ -1085,14 +1225,14 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     }
 
     // 6. Main Navigation Hotkeys
-    if (this.matchesBinding(data, "tui.select.cancel", ["\x1b"])) {
+    if (this.matchesBinding(data, "tui.select.cancel", ["escape"])) {
       this.dialogScrollOffset = 0;
       this.inputMode = "confirm_cancel";
       this.invalidate();
       return;
     }
 
-    if (data === "\t" || data === "\x1b[C" || data === "l") {
+    if (this.isNextKey(data)) {
       this.state.next();
       this.focusedItemIndex = 0;
       this.focusedItemChanged = true;
@@ -1103,7 +1243,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (data === "\x1b[Z" || data === "\x1b[D" || data === "h") {
+    if (this.isPrevKey(data)) {
       this.state.prev();
       this.focusedItemIndex = 0;
       this.focusedItemChanged = true;
@@ -1137,7 +1277,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     const rows = this.getQuestionRows(q);
     const maxItems = rows.length;
 
-    if (this.matchesBinding(data, "tui.select.up", ["\x1b[A", "k"])) {
+    if (this.matchesBinding(data, "tui.select.up", ["up", "k"])) {
       this.focusedItemIndex = (this.focusedItemIndex - 1 + maxItems) % maxItems;
       this.focusedItemChanged = true;
       this.alertMessage = undefined;
@@ -1145,7 +1285,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (this.matchesBinding(data, "tui.select.down", ["\x1b[B", "j"])) {
+    if (this.matchesBinding(data, "tui.select.down", ["down", "j"])) {
       if (this.focusedItemIndex === maxItems - 1 && this.hasPreviewContent()) {
         this.previewFocusMode = true;
         this.previewExpanded = true;
@@ -1161,7 +1301,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (this.matchesBinding(data, "tui.select.pageUp", ["\x1b[5~"])) {
+    if (this.matchesBinding(data, "tui.select.pageUp", ["pageUp"])) {
       if (this.focusedItemIndex > 0) {
         this.focusedItemIndex = Math.max(0, this.focusedItemIndex - 5);
         this.focusedItemChanged = true;
@@ -1173,7 +1313,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (this.matchesBinding(data, "tui.select.pageDown", ["\x1b[6~"])) {
+    if (this.matchesBinding(data, "tui.select.pageDown", ["pageDown"])) {
       if (this.focusedItemIndex < maxItems - 1) {
         this.focusedItemIndex = Math.min(maxItems - 1, this.focusedItemIndex + 5);
         this.focusedItemChanged = true;
@@ -1192,7 +1332,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     const row = rows[this.focusedItemIndex];
     if (!row) return;
 
-    if (data === " ") {
+    if (matchesKey(data, "space")) {
       if (row.kind === "option") {
         this.state.selectOption(q.id, row.option.id);
         this.invalidate();
@@ -1205,7 +1345,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       }
     }
 
-    if (this.matchesBinding(data, "tui.select.confirm", ["\r", "\n"])) {
+    if (this.matchesBinding(data, "tui.select.confirm", ["enter"])) {
       if (row.kind === "option") {
         this.state.selectOption(q.id, row.option.id);
         if ((q.type ?? "single") === "single") {
@@ -1263,7 +1403,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (data === "d" || data === "D" || data === "\x1b[3~") {
+    if (data === "d" || data === "D" || matchesKey(data, "delete")) {
       if (row.kind === "note") {
         this.state.setQuestionNotes(q.id, undefined);
         this.invalidate();
@@ -1281,7 +1421,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     const rows = this.getReviewRows();
     const maxItems = rows.length;
 
-    if (this.matchesBinding(data, "tui.select.up", ["\x1b[A", "k"])) {
+    if (this.matchesBinding(data, "tui.select.up", ["up", "k"])) {
       this.focusedItemIndex = (this.focusedItemIndex - 1 + maxItems) % maxItems;
       this.focusedItemChanged = true;
       this.alertMessage = undefined;
@@ -1289,7 +1429,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (this.matchesBinding(data, "tui.select.down", ["\x1b[B", "j"])) {
+    if (this.matchesBinding(data, "tui.select.down", ["down", "j"])) {
       this.focusedItemIndex = (this.focusedItemIndex + 1) % maxItems;
       this.focusedItemChanged = true;
       this.alertMessage = undefined;
@@ -1297,7 +1437,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (this.matchesBinding(data, "tui.select.pageUp", ["\x1b[5~"])) {
+    if (this.matchesBinding(data, "tui.select.pageUp", ["pageUp"])) {
       this.focusedItemIndex = Math.max(0, this.focusedItemIndex - 5);
       this.focusedItemChanged = true;
       this.alertMessage = undefined;
@@ -1305,7 +1445,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (this.matchesBinding(data, "tui.select.pageDown", ["\x1b[6~"])) {
+    if (this.matchesBinding(data, "tui.select.pageDown", ["pageDown"])) {
       this.focusedItemIndex = Math.min(maxItems - 1, this.focusedItemIndex + 5);
       this.focusedItemChanged = true;
       this.alertMessage = undefined;
@@ -1316,7 +1456,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     const row = rows[this.focusedItemIndex];
     if (!row) return;
 
-    if (this.matchesBinding(data, "tui.select.confirm", ["\r", "\n"])) {
+    if (this.matchesBinding(data, "tui.select.confirm", ["enter"])) {
       if (row.kind === "question") {
         this.state.goToQuestion(row.questionIndex);
         this.focusedItemIndex = 0;
@@ -1352,7 +1492,7 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
       return;
     }
 
-    if (data === "d" || data === "D" || data === "\x1b[3~") {
+    if (data === "d" || data === "D" || matchesKey(data, "delete")) {
       if (row.kind === "global_note") {
         this.state.setGlobalUserNotes(undefined);
         this.invalidate();
@@ -1470,10 +1610,32 @@ export class QuestionnaireTUIComponent implements Component, Focusable {
     this.invalidate();
   }
 
-  private matchesBinding(data: string, binding: string, fallbacks: string[]): boolean {
+  /**
+   * Protocol-aware key matching. Never compare raw escape sequences: terminals
+   * with the kitty keyboard protocol, SS3 application-cursor mode, or
+   * multiplexers (tmux, Herdr, SSH) encode the same key differently
+   * (e.g. Esc = "\x1b" or "\x1b[27u", Shift+Tab = "\x1b[Z" or "\x1b[9;2u").
+   */
+  private matchesBinding(data: string, binding: string, fallbackKeys: KeyId[]): boolean {
     if (this.keybindings && (this.keybindings as any).matches?.(data, binding)) {
       return true;
     }
-    return fallbacks.includes(data);
+    return fallbackKeys.some((key) => matchesKey(data, key));
+  }
+
+  private isConfirmKey(data: string): boolean {
+    return this.matchesBinding(data, "tui.select.confirm", ["enter"]);
+  }
+
+  private isCancelKey(data: string): boolean {
+    return this.matchesBinding(data, "tui.select.cancel", ["escape"]);
+  }
+
+  private isNextKey(data: string): boolean {
+    return matchesKey(data, "tab") || matchesKey(data, "right") || data === "l";
+  }
+
+  private isPrevKey(data: string): boolean {
+    return matchesKey(data, "shift+tab") || matchesKey(data, "left") || data === "h";
   }
 }

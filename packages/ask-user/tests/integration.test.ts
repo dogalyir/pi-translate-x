@@ -153,6 +153,11 @@ function makeTwoExtensionRuntime(
   return { model, registry, session, runtime, bus, translatorExt, questionnaireExt, ui };
 }
 
+/** Mock translator: echoes every requested item (incl. UI chrome `c:*` ids), overriding selected ids. */
+function echoWithOverrides(requested: Array<{ id: string; text: string }>, overrides: Record<string, string>) {
+  return requested.map((it) => ({ id: it.id, text: overrides[it.id] ?? it.text }));
+}
+
 describe("Two-Extension ExtensionRunner Integration", () => {
   it("executes forward and reverse batch translation, preserves stable IDs even with duplicate translated labels, and persists context-excluded record", async () => {
     let forwardCalls = 0;
@@ -724,11 +729,11 @@ describe("Two-Extension ExtensionRunner Integration", () => {
           version: 1,
           correlationId: data.correlationId,
           ok: true,
-          items: [
-            { id: "q:q1:header", text: "En-tête" },
-            { id: "q:q1:prompt", text: "Question" },
-            { id: "q:q1:opt:o1:label", text: "Option 1" },
-          ],
+          items: echoWithOverrides(data.items, {
+            "q:q1:header": "En-tête",
+            "q:q1:prompt": "Question",
+            "q:q1:opt:o1:label": "Option 1",
+          }),
         });
       }
     });
@@ -923,16 +928,18 @@ describe("Two-Extension ExtensionRunner Integration", () => {
       });
     });
 
+    const forwardIds: string[] = [];
     env.bus.on("pi-translate:v1:batch-request", (data: any) => {
       if (data.direction === "to_target") {
+        forwardIds.push(...data.items.map((it: any) => it.id));
         env.bus.emit("pi-translate:v1:batch-response", {
           version: 1,
           correlationId: data.correlationId,
           ok: true,
-          items: [
-            { id: "q:q1:header", text: "Encabezado" },
-            { id: "q:q1:prompt", text: "Pregunta" },
-          ],
+          items: echoWithOverrides(data.items, {
+            "q:q1:header": "Encabezado",
+            "q:q1:prompt": "Pregunta",
+          }),
         });
       }
     });
@@ -985,6 +992,8 @@ describe("Two-Extension ExtensionRunner Integration", () => {
     // Cancels cleanly; raw Spanish custom prose was NEVER submitted to LLM as canonical English
     expect(result.details.status).toBe("cancelled");
     expect(result.details.answers).toEqual([]);
+    // UI chrome (labels, hints, dialogs) is sent for translation along with the content
+    expect(forwardIds).toEqual(expect.arrayContaining(["q:q1:header", "c:customLabel", "c:markEmpty", "c:footerNav"]));
   });
 
   it("validates answered fields on recovery resubmit and keeps invalid edits recoverably editable", async () => {
@@ -1030,10 +1039,10 @@ describe("Two-Extension ExtensionRunner Integration", () => {
           version: 1,
           correlationId: data.correlationId,
           ok: true,
-          items: [
-            { id: "q:q1:header", text: "Q1" },
-            { id: "q:q1:prompt", text: "P1" },
-          ],
+          items: echoWithOverrides(data.items, {
+            "q:q1:header": "Q1",
+            "q:q1:prompt": "P1",
+          }),
         });
       }
     });
@@ -1440,11 +1449,11 @@ describe("Two-Extension ExtensionRunner Integration", () => {
           version: 1,
           correlationId: data.correlationId,
           ok: true,
-          items: [
-            { id: "q:q1:header", text: "German Header" },
-            { id: "q:q1:prompt", text: "German Prompt" },
-            { id: "q:q1:opt:o1:label", text: "German Option" },
-          ],
+          items: echoWithOverrides(data.items, {
+            "q:q1:header": "German Header",
+            "q:q1:prompt": "German Prompt",
+            "q:q1:opt:o1:label": "German Option",
+          }),
         });
       }
     });

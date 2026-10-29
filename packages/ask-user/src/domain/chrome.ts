@@ -30,6 +30,7 @@ export interface UIChromeStrings {
   readonly addQuestionNotesPrompt: string;
   readonly typeCustomPlaceholder: string;
   readonly footerNav: string;
+  readonly footerReview: string;
   readonly footerEdit: string;
   readonly emptySelectionConfirm: string;
   readonly skipQuestion: string;
@@ -51,6 +52,11 @@ export interface UIChromeStrings {
   readonly previewFocusHint: string;
   readonly previewScrollHint: string;
   readonly previewCollapseHint: string;
+  readonly previewFocusedTag: string;
+  readonly emptyAnswer: string;
+  readonly unansweredQuestions: string;
+  readonly questionLabel: string;
+  readonly draftsPreserved: string;
 }
 
 export const DEFAULT_EN_CHROME: UIChromeStrings = {
@@ -84,7 +90,8 @@ export const DEFAULT_EN_CHROME: UIChromeStrings = {
   addGlobalNotesPrompt: "(Press Enter to add overall questionnaire notes...)",
   addQuestionNotesPrompt: "(Add a note for this question...)",
   typeCustomPlaceholder: "(Type custom answer...)",
-  footerNav: "[Tab/Shift-Tab] Switch Question  [↑/↓] Navigate  [PgUp/PgDn] Page  [p] Preview  [Space] Select  [Enter] Action  [Esc] Cancel",
+  footerNav: "[←/→ or Tab/Shift+Tab] Question  [↑/↓] Move  [Space] Select  [Enter] Confirm  [p] Preview  [PgUp/PgDn] Page  [Esc] Cancel",
+  footerReview: "[←/→ or Tab/Shift+Tab] Question  [↑/↓] Move  [Enter] Open  [s] Submit  [n] Notes  [Esc] Cancel",
   footerEdit: "[Enter] Confirm input  [Esc] Revert/cancel input",
   emptySelectionConfirm: "[Empty] Confirm empty selection",
   skipQuestion: "⏭ Skip this question",
@@ -95,7 +102,7 @@ export const DEFAULT_EN_CHROME: UIChromeStrings = {
   validationFailed: "Validation failed: fix invalid fields",
   requiredBadge: "*required",
   optionalBadge: "optional",
-  markEmpty: "Explicit empty selection (mark blank)",
+  markEmpty: "Leave this question blank",
   clearNote: "Clear note",
   clearCustom: "Clear custom text",
   togglePreview: "Toggle preview",
@@ -106,4 +113,9 @@ export const DEFAULT_EN_CHROME: UIChromeStrings = {
   previewFocusHint: "Press [p] to focus preview",
   previewScrollHint: "[↑/↓/PgUp/PgDn] Scroll preview  [Esc/p] Return to controls",
   previewCollapseHint: "Press [p] to collapse preview",
+  previewFocusedTag: "focused",
+  emptyAnswer: "(Empty)",
+  unansweredQuestions: "Unanswered questions",
+  questionLabel: "Question",
+  draftsPreserved: "Your draft answers are preserved in memory.",
 };
