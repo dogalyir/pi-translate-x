@@ -27,7 +27,7 @@ try {
   const files = [];
   const walk = (dir) => { for (const item of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, item.name); if (item.isDirectory()) walk(full); else files.push(full.slice(root.length + 1).replaceAll("\\", "/")); } };
   walk(root);
-  const required = ["LICENSE", "README.md", "ROADMAP.md", "CONTRIBUTING.md", "CHANGELOG.md", "config.example.json", "src/index.ts", "src/core/contracts.ts", "src/core/config.ts", "src/core/engine.ts", "src/core/lifecycle.ts", "src/core/protection.ts", "src/core/records.ts", "src/core/scheduler.ts"];
+  const required = ["LICENSE", "README.md", "ROADMAP.md", "CONTRIBUTING.md", "CHANGELOG.md", "config.example.json", "src/index.ts", "src/core/contracts.ts", "src/core/config.ts", "src/core/engine.ts", "src/core/lifecycle.ts", "src/core/model-resolution.ts", "src/core/protection.ts", "src/core/records.ts", "src/core/scheduler.ts"];
   for (const path of required) if (!files.includes(path)) throw new Error(`Tarball missing ${path}`);
   for (const path of files) if (/^(GOAL|PLAN)\.md$|^tests\//.test(path) || /(?:session|secret|\.env)/i.test(path)) throw new Error(`Forbidden tarball path: ${path}`);
   function validateImportClosure(pkgRoot, startFile, fileList) {

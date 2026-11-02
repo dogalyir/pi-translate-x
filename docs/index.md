@@ -21,6 +21,12 @@ Welcome to the `pi-translate-x` monorepo documentation. This index guides you to
   - Protection and lexical literal masking rules
   - Event-bus translation service (Protocol v1 over `pi.events`)
 
+- [**CLIProxyAPI Provider Compatibility**](cliproxyapi-compatibility.md):
+  - Research on the router-for-me, xiangsam and 0xRichardH provider packages and Pi's provider registration
+  - Root causes of load-order and "model not found" failures
+  - Implemented proposal: lazy, CLIProxyAPI-aware model resolution with one bounded refresh
+  - Verification, limitations and rollout
+
 - [**Questionnaire Guide**](questionnaire.md):
   - Architecture and non-interception guarantee (`ask_user` tool vs separate `ask_user_question` plugin)
   - Standalone and cooperative dual execution modes
@@ -52,6 +58,7 @@ pi-translate-x/
 ├── docs/                          # Developer and user documentation
 │   ├── index.md                   # This documentation index
 │   ├── translation.md             # In-depth translation pipeline documentation
+│   ├── cliproxyapi-compatibility.md # CLIProxyAPI provider research, explanation and proposal
 │   ├── questionnaire.md           # Companion questionnaire tool reference
 │   ├── releases.md                # Release verification and workflow guide
 │   └── assets/                    # Standalone SVG banner and architecture diagrams

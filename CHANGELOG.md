@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## pi-translate-x 0.1.5
+
+- Fixed frequent "Protected placeholder count invalid" failures with some translation models (reproduced 100% with `claude-haiku-5-5`): the model ignored the system-only instruction and *answered* the text instead of translating it, dropping every placeholder. The source is now fenced in `<source_text>` tags and the task is restated in the user turn; any echoed tags are stripped from the output.
+- Translation now retries once when the model drops, duplicates, or alters a protected placeholder ("Protected placeholder count invalid"). The retry uses a stricter prompt listing the exact tokens; both attempts share the configured `timeoutMs`. Other errors are not retried.
+- CLIProxyAPI provider packages are now supported (router-for-me `cliproxyapi`, xiangsam/0xRichardH `cpa`, or a `models.json` entry). The translation model is resolved per request and does not depend on extension load order. A model registered late is picked up after one bounded provider refresh. A configured CLIProxyAPI model is also found under the other CLIProxyAPI provider id, so you no longer get "model unavailable" after switching packages.
+- Auth checks also accept stored/provider credentials while Pi's availability snapshot is still catching up after a provider (re)registration.
+- `/translate-x status` reports the resolved translation model (e.g. `cliproxyapi/claude-haiku-5-5 → cpa/claude-haiku-5-5`).
+- `/translate-x setup` now explains why it stopped (model no longer registered, or no authentication) instead of exiting silently, and uses the same lag-tolerant auth check.
+
 ## pi-translate-x 0.1.4 / pi-ask-user-x 0.1.3
 
 - Fixed questionnaire translation timing out after a hard-coded 30 s ("Batch translation timed out after 30000ms"). `pi-ask-user-x` now sends a high ceiling and the translation service clamps it to the configured `timeoutMs`, so that setting (1000–300000 ms) controls the wait.

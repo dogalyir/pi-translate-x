@@ -112,6 +112,7 @@ Before sending human text to the translation provider, sensitive syntactic const
 - **Pre-existing placeholders**: Nested or existing `⟪PI_LITERAL_...⟫` tokens are preserved.
 - **Arbitrary shell syntax not masked**: The scanner does **not** recognize or mask arbitrary `$shell` syntax (such as `$ ...`).
 - **Bypassed prefixes**: The input hook in `src/index.ts` bypasses translation entirely when an input begins with `!` (shell execution) or `/` (slash command), or when no prose is detected.
+- **Integrity retry**: Each placeholder must come back exactly once and unchanged. If the check fails, `ProtectedTranslationEngine` retries once with a stricter prompt listing the exact tokens, inside the same `timeoutMs` deadline. If the retry fails too, the error is raised as before.
 - **Best-Effort Scope**: Masking is best-effort lexical protection. It does not provide cryptographic sanitization or guarantee that no code tokens are sent to the translation API.
 
 ---

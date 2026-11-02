@@ -23,7 +23,7 @@ if (tag !== undefined) {
   }
 }
 const packed = JSON.parse(execFileSync("npm", ["pack", "--dry-run", "--json"], { encoding: "utf8" }))[0]?.files?.map((f) => f.path) ?? [];
-const required = ["package.json", "LICENSE", "README.md", "CHANGELOG.md", "config.example.json", "ROADMAP.md", "CONTRIBUTING.md", "src/index.ts", "src/core/contracts.ts", "src/core/config.ts", "src/core/engine.ts", "src/core/lifecycle.ts", "src/core/protection.ts", "src/core/records.ts", "src/core/scheduler.ts"];
+const required = ["package.json", "LICENSE", "README.md", "CHANGELOG.md", "config.example.json", "ROADMAP.md", "CONTRIBUTING.md", "src/index.ts", "src/core/contracts.ts", "src/core/config.ts", "src/core/engine.ts", "src/core/lifecycle.ts", "src/core/model-resolution.ts", "src/core/protection.ts", "src/core/records.ts", "src/core/scheduler.ts"];
 for (const file of required) if (!packed.includes(file)) throw new Error(`Required package file missing: ${file}`);
 for (const file of packed) if (/^(GOAL|PLAN)\.md$|^tests\//.test(file) || /(?:session|secret|\.env)/i.test(file)) throw new Error(`Unexpected sensitive/internal file in tarball: ${file}`);
 console.log(`Package manifest valid (${packed.length} files); version ${pkg.version}`);

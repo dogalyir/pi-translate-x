@@ -8,7 +8,7 @@ This document details the release processes, verified published packages, GitHub
 
 | Package | Workspace Path | Latest npm Version | Release Status | Distribution Mechanism |
 |---|---|---|---|---|
-| `pi-translate-x` | `.` (monorepo root) | `0.1.4` | **Published** | Automated via `.github/workflows/publish.yml` (OIDC Provenance) |
+| `pi-translate-x` | `.` (monorepo root) | `0.1.5` | **Published** | Automated via `.github/workflows/publish.yml` (OIDC Provenance) |
 | `pi-ask-user-x` | `packages/ask-user` | `0.1.3` | **Published** | Automated via `.github/workflows/publish-ask-user.yml` (OIDC Provenance); `0.1.0` was a manual bootstrap |
 
 ### Verified Release Evidence
@@ -88,11 +88,11 @@ npm run check
 npm run validate:package
 
 # 2. Tag and push release tag
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 
 # 3. Create published GitHub Release
-gh release create v0.1.4 --title "v0.1.4" --notes "Release v0.1.4"
+gh release create v0.1.5 --title "v0.1.5" --notes "Release v0.1.5"
 ```
 
 ### Cutting a Companion `pi-ask-user-x` Release

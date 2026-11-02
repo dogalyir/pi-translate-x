@@ -153,7 +153,7 @@ export class TranslationService {
     this.getConfig = options.getConfig;
     this.getState = options.getState;
     this.getScheduler = options.getScheduler;
-    this.serverVersion = options.serverVersion ?? "0.1.4";
+    this.serverVersion = options.serverVersion ?? "0.1.5";
     this.maxConcurrentBatches = options.maxConcurrentBatches ?? 8;
     this.getActiveContext = options.getActiveContext;
     this.getSettingsEpoch = options.getSettingsEpoch;

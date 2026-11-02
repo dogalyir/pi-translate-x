@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { validateConfig } from "../src/core/config.js";
-import { ProtectedTranslationEngine } from "../src/core/engine.js";
+import { ProtectedTranslationEngine, unwrapTranslation, wrapTranslationSource } from "../src/core/engine.js";
 import { Lifecycle } from "../src/core/lifecycle.js";
 import { cacheKey, createRecord, isDurableTranslationRecord, TranslationCache } from "../src/core/records.js";
 import { protectLiterals } from "../src/core/protection.js";
@@ -30,6 +30,24 @@ describe("engine/protection", () => {
     const engine = new ProtectedTranslationEngine(async (_req, text) => text.replace("Hola", "Hello"));
     await expect(engine.translate(request())).resolves.toMatchObject({ text: "Hello `x` https://a.test" });
     await expect(new ProtectedTranslationEngine(async () => " ").translate(request())).rejects.toThrow(/empty/);
+  });
+  it("retries once with token hint on placeholder integrity failure", async () => {
+    const hints: unknown[] = [];
+    const engine = new ProtectedTranslationEngine(async (_req, text, retry) => { hints.push(retry); return retry ? text.replace("Hola", "Hello") : text.replace(/⟪[^⟫]*_0⟫/, "").replace("Hola", "Hello"); });
+    await expect(engine.translate(request())).resolves.toMatchObject({ text: "Hello `x` https://a.test" });
+    expect(hints).toHaveLength(2); expect(hints[0]).toBeUndefined(); expect(hints[1]).toMatchObject({ attempt: 2, tokens: [expect.stringMatching(/_0⟫$/), expect.stringMatching(/_1⟫$/)] });
+  });
+  it("fences the source in the user turn and strips echoed wrapper tags", () => {
+    const p = protectLiterals("Hola `x`"); const wrapped = wrapTranslationSource(p.masked, "English");
+    expect(wrapped).toContain(`<source_text>\n${p.masked}\n</source_text>`); expect(wrapped).toMatch(/into English/);
+    expect(unwrapTranslation(`<source_text>\nHello ${p.tokens[0]}\n</source_text>\n`)).toBe(`Hello ${p.tokens[0]}`);
+    expect(unwrapTranslation("Plain\n\ntext")).toBe("Plain\n\ntext");
+  });
+  it("fails after the single retry and does not retry non-integrity errors", async () => {
+    let calls = 0; const broken = new ProtectedTranslationEngine(async (_req, text) => { calls++; return text + text; });
+    await expect(broken.translate(request())).rejects.toMatchObject({ code: "integrity" }); expect(calls).toBe(2);
+    let emptyCalls = 0; const empty = new ProtectedTranslationEngine(async () => { emptyCalls++; return ""; });
+    await expect(empty.translate(request())).rejects.toMatchObject({ code: "empty" }); expect(emptyCalls).toBe(1);
   });
 });
 

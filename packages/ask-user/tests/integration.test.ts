@@ -112,7 +112,9 @@ function makeTwoExtensionRuntime(
     complete: async (_m: unknown, context: { messages: Array<{ content?: Array<{ type: string; text?: string }> }> }) => {
       const userMsg = context.messages[context.messages.length - 1];
       const textPart = userMsg?.content?.find((p) => p.type === "text");
-      const promptText = textPart?.text ?? "";
+      const raw = textPart?.text ?? "";
+      // A compliant model translates only the fenced document, not the wrapper instructions.
+      const promptText = /<source_text>\n([\s\S]*)\n<\/source_text>$/.exec(raw)?.[1] ?? raw;
       return fauxAssistantMessage(await completeHandler(promptText));
     },
   };
