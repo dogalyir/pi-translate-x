@@ -8,8 +8,8 @@ This document details the release processes, verified published packages, GitHub
 
 | Package | Workspace Path | Latest npm Version | Release Status | Distribution Mechanism |
 |---|---|---|---|---|
-| `pi-translate-x` | `.` (monorepo root) | `0.1.3` | **Published** | Automated via `.github/workflows/publish.yml` (OIDC Provenance) |
-| `pi-ask-user-x` | `packages/ask-user` | `0.1.2` | **Published** | Automated via `.github/workflows/publish-ask-user.yml` (OIDC Provenance); `0.1.0` was a manual bootstrap |
+| `pi-translate-x` | `.` (monorepo root) | `0.1.4` | **Published** | Automated via `.github/workflows/publish.yml` (OIDC Provenance) |
+| `pi-ask-user-x` | `packages/ask-user` | `0.1.3` | **Published** | Automated via `.github/workflows/publish-ask-user.yml` (OIDC Provenance); `0.1.0` was a manual bootstrap |
 
 ### Verified Release Evidence
 

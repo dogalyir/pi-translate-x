@@ -340,7 +340,8 @@ async function executeQuestionnaireFlow(
               direction: "to_target",
               targetLanguage: discovery?.targetLanguage ?? "English",
               items: fields,
-              timeoutMs: 30_000,
+              // Ceiling only: the service clamps this to its configured timeoutMs.
+              timeoutMs: 305_000,
             },
             signal,
           );

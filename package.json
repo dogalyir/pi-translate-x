@@ -1,6 +1,6 @@
 {
   "name": "pi-translate-x",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "workspaces": [
     "packages/*"
   ],

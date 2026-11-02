@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## pi-translate-x 0.1.4 / pi-ask-user-x 0.1.3
+
+- Fixed questionnaire translation timing out after a hard-coded 30 s ("Batch translation timed out after 30000ms"). `pi-ask-user-x` now sends a high ceiling and the translation service clamps it to the configured `timeoutMs`, so that setting (1000–300000 ms) controls the wait.
+- Raised the service-side batch timeout cap from 120 s to 300 s to match the `timeoutMs` validation limit.
+
 ## pi-ask-user-x 0.1.2
 
 - Fixed keyboard handling in terminals that use the kitty keyboard protocol or SS3 application-cursor mode (Kitty, Ghostty, WezTerm, tmux, Herdr, SSH): `Shift+Tab`, `←`/`→` and `Esc` (including on the submit and cancel confirmations) are now matched protocol-aware instead of by raw escape sequences.

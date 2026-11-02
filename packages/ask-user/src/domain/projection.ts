@@ -224,7 +224,8 @@ export async function resolveCanonicalAnswers(
         direction: "to_english",
         targetLanguage: "English",
         items: reverseBatchItems,
-        timeoutMs: 30_000,
+        // Ceiling only: the service clamps this to its configured timeoutMs.
+        timeoutMs: 305_000,
       },
       signal,
     );

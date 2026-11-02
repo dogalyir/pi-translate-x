@@ -319,7 +319,7 @@ export class TranslationServiceClient {
           signal.addEventListener("abort", abortListener, { once: true });
         }
 
-        const timeoutMs = request.timeoutMs ?? 30_000;
+        const timeoutMs = request.timeoutMs ?? 305_000;
         timer = setTimeout(() => {
           this.cancel(correlationId, "Request timeout");
           cleanup();

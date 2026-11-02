@@ -153,7 +153,7 @@ export class TranslationService {
     this.getConfig = options.getConfig;
     this.getState = options.getState;
     this.getScheduler = options.getScheduler;
-    this.serverVersion = options.serverVersion ?? "0.1.3";
+    this.serverVersion = options.serverVersion ?? "0.1.4";
     this.maxConcurrentBatches = options.maxConcurrentBatches ?? 8;
     this.getActiveContext = options.getActiveContext;
     this.getSettingsEpoch = options.getSettingsEpoch;
@@ -352,7 +352,7 @@ export class TranslationService {
     const controller = new AbortController();
     const configuredTimeout = config.timeoutMs ?? 60_000;
     const requestedTimeout = request.timeoutMs > 0 ? request.timeoutMs : configuredTimeout;
-    const timeoutMs = Math.min(Math.max(requestedTimeout, 1_000), Math.min(configuredTimeout, 120_000));
+    const timeoutMs = Math.min(Math.max(requestedTimeout, 1_000), Math.min(configuredTimeout, 300_000));
     let batchRecord!: ActiveBatchRecord;
     const timer = setTimeout(() => {
       if (batchRecord && !batchRecord.settled) {
